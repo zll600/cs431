@@ -39,7 +39,8 @@ impl CancellableTcpListener {
         // Set the flag first and make a bogus connection to itself to wake up the listener blocked
         // in `accept`. Use `TcpListener::local_addr` and `TcpStream::connect`.
         self.is_canceled.store(true, Ordering::Release);
-        TcpStream::connect(self.inner.local_addr.unwrap());
+        TcpStream::connect(self.inner.local_addr().unwrap());
+        io::Result::Ok(())
         //todo!()
     }
 
