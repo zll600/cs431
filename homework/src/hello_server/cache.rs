@@ -9,7 +9,8 @@ use std::sync::{Arc, Mutex, RwLock};
 pub struct Cache<K, V> {
     // todo! This is an example cache type. Build your own cache type that satisfies the
     // specification for `get_or_insert_with`.
-    inner: Mutex<HashMap<K, V>>,
+    inner: Arc<RwLock<HashMap<K, V>>>,
+    state: Arc<HashMap<K, Mutex<bool>>>,
 }
 
 impl<K: Eq + Hash + Clone, V: Clone> Cache<K, V> {
@@ -24,6 +25,16 @@ impl<K: Eq + Hash + Clone, V: Clone> Cache<K, V> {
     /// duplicate the work. That is, `f` should be run only once for each key. Specifically, even
     /// for the concurrent invocations of `get_or_insert_with(key, f)`, `f` is called only once.
     pub fn get_or_insert_with<F: FnOnce(K) -> V>(&self, key: K, f: F) -> V {
-        todo!()
+        
+        // Firstly, check whether the key given exists in "state" table or not
+        // if not exists, it means that V needs to be calculated and (K,V) needs to be stored in "inner" table
+        // if exists, it means that calculated value is stored in "inner" table.
+
+        if !(self.state.contains_key(key)) {
+            let lock = Mutex::new(false);
+            
+            self.state.insert(key, lock);
+        }
+        
     }
 }
