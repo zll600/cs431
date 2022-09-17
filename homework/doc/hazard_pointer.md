@@ -12,7 +12,7 @@ Implement Hazard Pointers.
    (approx 75 lines).
 
 ## Grading (100 points)
-Run `./scripts/grade-6.sh`.
+Run `./scripts/grade-hazard_pointer.sh`.
 
 Grading scheme
 * tested with `cargo[_asan] [--release]`
@@ -26,6 +26,6 @@ Grading scheme
 ```bash
 cd cs431/homework
 ./scripts/submit.sh
-ls ./target/hw6.zip
+ls ./target/hw-hazard_pointer.zip
 ```
-Submit `hw6.zip` to gg.
+Submit `hw-hazard_pointer.zip` to gg.

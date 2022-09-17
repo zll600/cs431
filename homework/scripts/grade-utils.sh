@@ -10,7 +10,7 @@
 rustup toolchain update stable nightly
 
 echo_err() {
-    echo -e "\033[0;31m\033[1m$@\033[0m" 1>&2
+    echo -e "$@" 1>&2
 }
 export -f echo_err
 
@@ -28,14 +28,12 @@ export -f check_diff
 # Returns non-zero exit code if any of the linters have failed.
 run_linters() {
     cargo fmt -- --check
-    cargo clippy
-    return 0
-    # local FMT_ERR=$?
-    # cargo clippy -- -D warnings
-    # local CLIPPY_ERR=$?
-    # [ "$FMT_ERR" -ne 0 ] && echo_err 'Please format your code with `cargo fmt` first.'
-    # [ "$CLIPPY_ERR" -ne 0 ] && echo_err 'Please fix the issues from `cargo clippy` first.'
-    # return $(( FMT_ERR || CLIPPY_ERR ))
+    local FMT_ERR=$?
+    cargo clippy -- -D warnings
+    local CLIPPY_ERR=$?
+    [ "$FMT_ERR" -ne 0 ] && echo_err 'Please format your code with `cargo fmt` first.'
+    [ "$CLIPPY_ERR" -ne 0 ] && echo_err 'Please fix the issues from `cargo clippy` first.'
+    return $(( FMT_ERR || CLIPPY_ERR ))
 }
 export -f run_linters
 
@@ -49,13 +47,15 @@ cargo_asan() {
 }
 export -f cargo_asan
 
+# Add `-Z build-std` to have synchronization of standard library.
+# https://doc.rust-lang.org/beta/unstable-book/compiler-flags/sanitizer.html#instrumentation-of-external-dependencies-and-std
 cargo_tsan() {
     local SUBCOMMAND=$1; shift
     RUSTFLAGS="-Z sanitizer=thread" \
         TSAN_OPTIONS="suppressions=suppress_tsan.txt" \
         RUSTDOCFLAGS="-Z sanitizer=thread" \
         RUST_TEST_THREADS=1 \
-        cargo +nightly $SUBCOMMAND --target x86_64-unknown-linux-gnu $@
+        cargo +nightly $SUBCOMMAND -Z build-std --target x86_64-unknown-linux-gnu $@
 }
 export -f cargo_tsan
 
@@ -80,7 +80,7 @@ _run_tests_with() {
     local FAILED=0
     for TEST in "${TESTS[@]}"; do
         local TEST_CMD="$CARGO test $@ $TEST"
-        timeout ${TIMEOUT:-10s} bash -c "$TEST_CMD 2>/dev/null" 1>&2
+        timeout ${TIMEOUT:-20s} bash -c "$TEST_CMD 2>/dev/null" 1>&2
         case $? in
             0) ;;
             124) echo_err "Test timed out: $TEST_CMD"; FAILED=$((FAILED + 1));;

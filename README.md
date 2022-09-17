@@ -152,7 +152,7 @@ Make sure you're capable of using the following development tools:
 
     + Your initial password is `123454321`. IMPORTANT: you should change it ASAP.
 
-    + I require you to register public SSH keys to the server. (In March, we'll expire your password so that you can log in only via SSH keys.)
+    + I require you to register public SSH keys to the server. (In September, we'll expire your password so that you can log in only via SSH keys.)
       See [this tutorial](https://serverpilot.io/docs/how-to-use-ssh-public-key-authentication/) for more information on SSH public key authentication.
       Use `ed25519`.
 
@@ -168,6 +168,8 @@ Make sure you're capable of using the following development tools:
       Then you can connect to the server by `ssh cs431`.
 
     + Now you can [use it as a VSCode remote server as in the video](https://www.youtube.com/watch?v=TTVuUIhdn_g&list=PL5aMzERQ_OZ8RWqn-XiZLXm1IJuaQbXp0&index=3).
+
+    + Install [rustup](https://rustup.rs) in the server to begin working on Rust!
 
     + [NOTE: We recommend the `rust-analyzer` plugin instead of `rls`](https://github.com/rust-analyzer/rust-analyzer).
 
