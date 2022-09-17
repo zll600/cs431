@@ -9,7 +9,8 @@ use std::sync::{Arc, Mutex, RwLock};
 pub struct Cache<K, V> {
     // todo! This is an example cache type. Build your own cache type that satisfies the
     // specification for `get_or_insert_with`.
-    inner: Mutex<HashMap<K, V>>,
+    inner: Arc<RwLock<HashMap<K,Option<V>>>>,
+    
 }
 
 impl<K: Eq + Hash + Clone, V: Clone> Cache<K, V> {
@@ -24,19 +25,52 @@ impl<K: Eq + Hash + Clone, V: Clone> Cache<K, V> {
     /// duplicate the work. That is, `f` should be run only once for each key. Specifically, even
     /// for the concurrent invocations of `get_or_insert_with(key, f)`, `f` is called only once.
     pub fn get_or_insert_with<F: FnOnce(K) -> V>(&self, key: K, f: F) -> V {
-        let mut table = self.inner.lock().unwrap();
-        if table.contains_key(&key) {
-            let result = table.get(&key).unwrap().clone();
-            result
-        }
-        else
-        {
-            let borrow_key = key.clone();
-            let result = f(borrow_key);
-            let borrow_result = result.clone();
+        let table = (*self.inner).read().unwrap();
+        let is_exist: bool = table.contains_key(&key);
+        drop(table);
 
-            table.insert(key, result);
-            borrow_result
+        // value for given key is stored or being calculated by other thread
+        if is_exist {
+            loop {
+                let table = (*self.inner).read().unwrap();
+                let value_status = table.get(&key).unwrap();
+                if let Some(v) = &*value_status {break;}
+            }
+            let table = (*self.inner).read().unwrap();
+            let result = table.get(&key).unwrap().as_ref().unwrap().clone();
+            result
+        }    
+        // value for given key is neither being calculated nor stored in map
+        else {
+
+            let mut table_write = (*self.inner).write().unwrap();
+
+            // prevent two threads writing k-v at the same time
+            if table_write.contains_key(&key){
+                drop(table_write);
+                loop {
+                    let table = (*self.inner).read().unwrap();
+                    let value_status = table.get(&key).unwrap();
+                    if let Some(v) = &*value_status {break;}
+                }
+                let table = (*self.inner).read().unwrap();
+                let result = table.get(&key).unwrap().as_ref().unwrap().clone();
+                result
+            }
+            else
+            {
+                table_write.insert(key.clone(), None);
+                drop(table_write);
+
+                let key_copy = key.clone();
+                let result = f(key);
+
+                let mut table_write = (*self.inner).write().unwrap();
+                table_write.insert(key_copy, Some(result.clone()));
+
+                result
+            }
         }
+        
     }
 }
