@@ -9,8 +9,7 @@ use std::sync::{Arc, Mutex, RwLock};
 pub struct Cache<K, V> {
     // todo! This is an example cache type. Build your own cache type that satisfies the
     // specification for `get_or_insert_with`.
-    inner: Arc<RwLock<HashMap<K,Option<V>>>>,
-    
+    inner: Arc<RwLock<HashMap<K, Option<V>>>>,
 }
 
 impl<K: Eq + Hash + Clone, V: Clone> Cache<K, V> {
@@ -34,31 +33,32 @@ impl<K: Eq + Hash + Clone, V: Clone> Cache<K, V> {
             loop {
                 let table = (*self.inner).read().unwrap();
                 let value_status = table.get(&key).unwrap();
-                if let Some(v) = &*value_status {break;}
+                if let Some(v) = value_status {
+                    break;
+                }
             }
             let table = (*self.inner).read().unwrap();
             let result = table.get(&key).unwrap().as_ref().unwrap().clone();
             result
-        }    
+        }
         // value for given key is neither being calculated nor stored in map
         else {
-
             let mut table_write = (*self.inner).write().unwrap();
 
             // prevent two threads writing k-v at the same time
-            if table_write.contains_key(&key){
+            if table_write.contains_key(&key) {
                 drop(table_write);
                 loop {
                     let table = (*self.inner).read().unwrap();
                     let value_status = table.get(&key).unwrap();
-                    if let Some(v) = &*value_status {break;}
+                    if let Some(v) = value_status {
+                        break;
+                    }
                 }
                 let table = (*self.inner).read().unwrap();
                 let result = table.get(&key).unwrap().as_ref().unwrap().clone();
                 result
-            }
-            else
-            {
+            } else {
                 table_write.insert(key.clone(), None);
                 drop(table_write);
 
@@ -71,6 +71,5 @@ impl<K: Eq + Hash + Clone, V: Clone> Cache<K, V> {
                 result
             }
         }
-        
     }
 }
