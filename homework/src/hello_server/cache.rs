@@ -24,6 +24,19 @@ impl<K: Eq + Hash + Clone, V: Clone> Cache<K, V> {
     /// duplicate the work. That is, `f` should be run only once for each key. Specifically, even
     /// for the concurrent invocations of `get_or_insert_with(key, f)`, `f` is called only once.
     pub fn get_or_insert_with<F: FnOnce(K) -> V>(&self, key: K, f: F) -> V {
-        todo!()
+        let mut table = self.inner.lock().unwrap();
+        if table.contains_key(&key) {
+            let result = table.get(&key).unwrap().clone();
+            result
+        }
+        else
+        {
+            let borrow_key = key.clone();
+            let result = f(borrow_key);
+            let borrow_result = result.clone();
+
+            table.insert(key, result);
+            borrow_result
+        }
     }
 }

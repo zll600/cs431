@@ -4,7 +4,7 @@
 
 // NOTE: Crossbeam channels are MPMC, which means that you don't need to wrap the receiver in
 // Arc<Mutex<..>>. Just clone the receiver and give it to each worker thread.
-use crossbeam_channel::{unbounded, Sender};
+use crossbeam_channel::{unbounded, Sender, Receiver};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 
@@ -16,11 +16,39 @@ struct Worker {
     thread: Option<thread::JoinHandle<()>>,
 }
 
+impl Worker {
+    fn new(id: usize, receiver: Receiver<Job>, inner: Arc<ThreadPoolInner>) -> Worker{
+        let thread = thread::spawn(move || loop {
+            let job = receiver.recv();
+            match job {
+                Ok(Job(f)) => {
+                    inner.start_job();
+                    println!("[Worker {}] starts a job", id);
+                    f();
+                    println!("[Worker {}] finishes a job", id);
+                    inner.finish_job();
+                }
+                Err(_) => {
+                    println!("Worker {} was told to terminate.", id);
+                    break;
+                }
+            }
+        });
+        Worker {
+            id: id, 
+            thread: Some(thread),
+        }
+    }
+}
+
 impl Drop for Worker {
     /// When dropped, the thread's `JoinHandle` must be `join`ed.  If the worker panics, then this
     /// function should panic too.  NOTE: that the thread is detached if not `join`ed explicitly.
     fn drop(&mut self) {
-        todo!()
+        
+        if let Some(thread) = self.thread.take() {
+            thread.join().unwrap();
+        }
     }
 }
 
@@ -35,12 +63,17 @@ struct ThreadPoolInner {
 impl ThreadPoolInner {
     /// Increment the job count.
     fn start_job(&self) {
-        todo!()
+        let mut count = self.job_count.lock().unwrap();
+        *count += 1;
+        println!("[tpool] add ( job count {})", *count);
     }
 
     /// Decrement the job count.
     fn finish_job(&self) {
-        todo!()
+        let mut count = self.job_count.lock().unwrap();
+        *count -= 1;
+        if *count == 0 {self.empty_condvar.notify_one();}
+        println!("[tpool] finish ( job count {})", *count);
     }
 
     /// Wait until the job count becomes 0.
@@ -48,7 +81,10 @@ impl ThreadPoolInner {
     /// NOTE: We can optimize this function by adding another field to `ThreadPoolInner`, but let's
     /// not care about that in this homework.
     fn wait_empty(&self) {
-        todo!()
+        let mut count = self.job_count.lock().unwrap();
+        while *count != 0 {
+            count = self.empty_condvar.wait(count).unwrap();
+        }
     }
 }
 
@@ -65,7 +101,20 @@ impl ThreadPool {
     pub fn new(size: usize) -> Self {
         assert!(size > 0);
 
-        todo!()
+        let (sender, receiver) = unbounded();
+
+        let mut workers = Vec::with_capacity(size);
+        let inner = Arc::new(ThreadPoolInner{ job_count: Mutex::new(0), empty_condvar: Condvar::new(),});
+
+        for id in 0..size {
+            workers.push(Worker::new(id, receiver.clone(), Arc::clone(&inner)))
+        }
+
+        ThreadPool {
+            workers: workers, 
+            job_sender: Some(sender),
+            pool_inner: inner,
+        }
     }
 
     /// Execute a new job in the thread pool.
@@ -73,13 +122,15 @@ impl ThreadPool {
     where
         F: FnOnce() + Send + 'static,
     {
-        todo!()
+        let job = Box::new(f);
+        self.job_sender.as_ref().unwrap().send(Job(job)).unwrap();
     }
 
     /// Block the current thread until all jobs in the pool have been executed.  NOTE: This method
     /// has nothing to do with `JoinHandle::join`.
     pub fn join(&self) {
-        todo!()
+        while (self.job_sender.as_ref().unwrap().len() > 0) {}
+        (*self.pool_inner).wait_empty();
     }
 }
 
@@ -87,6 +138,8 @@ impl Drop for ThreadPool {
     /// When dropped, all worker threads' `JoinHandle` must be `join`ed. If the thread panicked,
     /// then this function should panic too.
     fn drop(&mut self) {
-        todo!()
+        if let Some(sender) = self.job_sender.take() {
+            drop(sender);
+        }
     }
 }
