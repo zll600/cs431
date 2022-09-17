@@ -33,7 +33,7 @@ impl Worker {
             }
         });
         Worker {
-            id,
+            _id: id,
             thread: Some(thread),
         }
     }
@@ -113,7 +113,7 @@ impl ThreadPool {
         }
 
         ThreadPool {
-            workers,
+            _workers: workers,
             job_sender: Some(sender),
             pool_inner: inner,
         }
