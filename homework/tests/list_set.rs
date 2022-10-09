@@ -74,34 +74,40 @@ fn stress_sequential() {
                 if let Some(key) = hashset.iter().choose(&mut rng) {
                     println!("iteration {}: contains({:?}) (existing)", i, key);
                     assert_eq!(set.contains(key), hashset.contains(key));
+                    println!("success");
                 }
             }
             Ops::ContainsNone => {
                 let key = generate_random_string(&mut rng);
                 println!("iteration {}: contains({:?}) (non-existing)", i, key);
                 assert_eq!(set.contains(&key), hashset.contains(&key));
+                println!("success");
             }
             Ops::Insert => {
                 let key = generate_random_string(&mut rng);
                 println!("iteration {}: insert({:?})", i, key);
                 assert_eq!(set.insert(key.clone()).is_ok(), hashset.insert(key));
+                println!("success");
             }
             Ops::RemoveSome => {
                 let key = hashset.iter().choose(&mut rng).map(Clone::clone);
                 if let Some(key) = key {
                     println!("iteration {}: remove({:?}) (existing)", i, key);
                     assert_eq!(set.remove(&key).is_ok(), hashset.remove(&key));
+                    println!("success");
                 }
             }
             Ops::RemoveNone => {
                 let key = generate_random_string(&mut rng);
                 println!("iteration {}: remove({:?}) (non-existing)", i, key);
                 assert_eq!(set.remove(&key).is_ok(), hashset.remove(&key));
+                println!("success");
             }
             Ops::Iterate => {
                 let result = set.iter().map(Clone::clone).collect::<HashSet<_>>();
                 println!("iteration {}: iter() → {:?}", i, result);
                 assert_eq!(result, hashset);
+                println!("success");
             }
         }
     }
@@ -157,14 +163,17 @@ fn stress_concurrent() {
                     match op {
                         Ops::Contains => {
                             let value = generate_random_string(&mut rng);
+                            println!("contain {:?}", value);
                             let _ = set.contains(&value);
                         }
                         Ops::Insert => {
                             let value = generate_random_string(&mut rng);
+                            println!("insert {:?}", value);
                             let _ = set.insert(value);
                         }
                         Ops::Remove => {
                             let value = generate_random_string(&mut rng);
+                            println!("remove {:?}", value);
                             let _ = set.remove(&value);
                         }
                     }

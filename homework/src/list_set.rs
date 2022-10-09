@@ -142,10 +142,9 @@ impl<T: Ord> OrderedListSet<T> {
 
             // remove the first node
             if (**head_node_guard).data.cmp(key) == std::cmp::Ordering::Equal {
-                let second_node_guard = (**head_node_guard).next.lock().unwrap();
                 let box_node = Box::from_raw(*head_node_guard);
+                let second_node_guard = (**head_node_guard).next.lock().unwrap();
                 *head_node_guard = *second_node_guard;
-                // free first node
 
                 return Ok((*box_node).data);
             }
