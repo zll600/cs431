@@ -352,7 +352,7 @@ impl<T> Drop for Arc<T> {
         fence(Ordering::Acquire);
 
         unsafe {
-            Box::from_raw(self.ptr.as_ptr());
+            drop(Box::from_raw(self.ptr.as_ptr()));
         }
     }
 }
