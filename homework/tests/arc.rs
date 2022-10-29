@@ -162,12 +162,16 @@ mod correctness {
             {
                 let flag = flag.clone();
                 let data = data.clone();
+
+                //print!("count of flag is {}\n", Arc::count(&flag));
+
                 thread::spawn(move || {
                     data.store(123, Relaxed);
                     drop(flag)
                 });
             }
             if Arc::count(&flag) == 1 {
+                //print!("hello\n");
                 assert_eq!(data.load(Relaxed), 123)
             }
         })
